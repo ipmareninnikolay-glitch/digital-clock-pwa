@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="Часы">
+
+<!-- Загрузка Service Worker -->
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .then(registration => {
+          console.log('SW зарегистрирован: ', registration);
+        })
+        .catch(registrationError => {
+          console.log('Ошибка регистрации SW: ', registrationError);
+        });
+    });
+  }
+</script>
+
+
+    <title>Цифровые часы с мировым временем</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        #world-time {
+            position: absolute;
+            top: 20px;
+            font-size: 2.5vh;
+            opacity: 0.8;
+            text-align: center;
+            width: 100%;
+        }
+        
+        #clock {
+            font-size: 15vw;
+            font-weight: bold;
+            margin-bottom: 2vh;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+        
+        #date {
+            font-size: 7vw;
+            text-align: center;
+            margin-top: 1vh;
+            opacity: 0.9;
+        }
+
+        .time-block {
+            display: inline-block;
+            margin: 0 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="world-time">
+        <div class="time-block" id="moscow">МСК: --:--</div>
+        <div class="time-block" id="krasnoyarsk">КРС: --:--</div>
+        <div class="time-block" id="kyzylorda">КЗЛ: --:--</div>
+    </div>
+    
+    <div id="clock">--:--</div>
+    <div id="date">Загрузка...</div>
+
+    <script>
+        // Часовые пояса (UTC смещение в часах)
+        const timeZones = {
+            moscow: 3,
+            krasnoyarsk: 7,
+            kyzylorda: 5
+        };
+
+        function updateWorldTime() {
+            const now = new Date();
+            const utcHours = now.getUTCHours();
+            const utcMinutes = now.getUTCMinutes();
+            
+            for (const city in timeZones) {
+                const offset = timeZones[city];
+                let hours = utcHours + offset;
+                
+                // Корректировка перехода через сутки
+                if (hours >= 24) hours -= 24;
+                if (hours < 0) hours += 24;
+                
+                // Форматирование с ведущим нулём
+                const formattedHours = hours.toString().padStart(2, '0');
+                const formattedMinutes = utcMinutes.toString().padStart(2, '0');
+                
+                document.getElementById(city).textContent = 
+                    `${city === 'moscow' ? 'МСК' : city === 'krasnoyarsk' ? 'КРС' : 'КЗЛ'}: ${formattedHours}:${formattedMinutes}`;
+            }
+        }
+
+        function updateClock() {
+            const now = new Date();
+            
+            // Форматирование времени (24 часа с ведущим нулем)
+            let hours = now.getHours().toString().padStart(2, '0');
+            let minutes = now.getMinutes().toString().padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}`;
+            
+            // Форматирование даты
+            const daysOfWeek = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+            const dayOfWeek = daysOfWeek[now.getDay()];
+            
+            const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+            const month = months[now.getMonth()];
+            
+            const dateStr = `${dayOfWeek}, ${now.getDate()} ${month} ${now.getFullYear()} года`;
+            document.getElementById('date').textContent = dateStr;
+            
+            // Обновляем мировое время
+            updateWorldTime();
+        }
+        
+        // Обновляем часы сразу и затем каждую минуту
+        updateClock();
+        setInterval(updateClock, 60000);
+        
+        // Обновляем время каждую секунду для плавности
+        setInterval(updateWorldTime, 1000);
+    </script>
+</body>
+</html>
